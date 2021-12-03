@@ -103,16 +103,39 @@ def ProbRGivenM(radii, M, hyper):
 	'''
 	c, slope, sigma, trans = split_hyper_linear(hyper)
 	prob = np.zeros_like(M)
-	
+	#print('SHAPE', prob.shape, M.shape, slope.shape)
 	for i in range(4):
 		ind = indicate(M, trans, i)
+		#print('MSHAPE',M[ind].shape)
 		mu = c[i] + M[ind]*slope[i]
+		#print('EXPECTED',mu)
 		sig = sigma[i]
 		prob[ind] = norm.pdf(radii, mu, sig)
 
 	prob = prob/np.sum(prob)
 
 	return prob
+
+def ProbRGivenM_II(radii, M, hyper):
+	c, slope, sigma, trans = split_hyper_linear_II(hyper)
+	# 10, 100
+	prob = np.zeros(shape=(radii.shape[0], M.shape[0]))
+	mu = np.zeros_like(prob)
+	for i in range(n_pop):
+		mu[...] = 0.0
+		ind = indicate_II(M[None,...], trans[:,None,:], i)
+		radii_id,mass_id = np.where(ind)
+		#
+		mu[radii_id, mass_id] = c[radii_id,i] + slope[radii_id,i]*M[mass_id]#M[None,...]*slope[:,None,i][ind]
+		#print(mu[0])
+		prob[ind] = norm.pdf(radii[radii_id],mu[radii_id, mass_id],sigma[radii_id,i])
+	#print('C',c[:,None,i])
+	return (prob/np.sum(prob, axis=1)[:,None])
+
+def random_choice_2d(arr, probs):
+	idx = (probs.cumsum(1) > np.random.rand(probs.shape[0])[:,None]).argmax(1)
+	return arr[idx]
+
 
 
 def classification( logm, trans ):

@@ -11,6 +11,26 @@ See arXiv:1603.08614 for details.
 
 If you use it, please cite it.
 
+Changes
+-------
+
+This fork introduces some changes to  make it easier to use and improve performance. One major change is with the
+*piece_linear* code which has been vectorized. Running the old version using 10000 samples takes about *5.38 seconds*,
+whilst the new version taks *2.44 milliseconds* which is a 2200x speed up making it useful for realtime applications.
+
+
+Additionally you can now use it anywhere. Install using
+```
+pip install git+https://github.com/ahmed-f-alrefaie/forecaster.git
+```
+
+Then run from your python terminal:
+
+```python
+>>> import forecaster.mr_forecast as mr
+>>> mr.Mstat2R(mean=1.0, std=0.1, unit='Earth', sample_size=100000)
+(1.006464878768933, 0.11527046644017758, 0.10215885395157043)
+```
 
 
 Usage

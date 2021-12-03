@@ -4,7 +4,7 @@ from scipy.stats import truncnorm
 import h5py 
 import pkg_resources
 from functools import lru_cache
-from forecaster.func import pick_random_hyper, piece_linear, ProbRGivenM, classification, piece_linear_II
+from forecaster.func import pick_random_hyper, piece_linear, ProbRGivenM, classification, piece_linear_II, ProbRGivenM_II, random_choice_2d
 ## constant
 mearth2mjup = 317.828
 mearth2msun = 333060.4
@@ -197,11 +197,10 @@ def Rpost2M(radius, unit='Earth', grid_size = 1e3, classify = 'No'):
 	hyper_ind = np.random.randint(low = 0, high = np.shape(all_hyper)[0], size = sample_size)
 	hyper = all_hyper[hyper_ind,:]
 
-	logm_grid = np.linspace(-3.522, 5.477, grid_size)
+	logm_grid = np.linspace(-3.522, 5.477, int(grid_size))
 
-	for i in range(sample_size):
-		prob = ProbRGivenM(logr[i], logm_grid, hyper[i,:])
-		logm[i] = np.random.choice(logm_grid, size=1, p = prob)
+	prob = ProbRGivenM_II(logr, logm_grid, hyper)
+	logm = random_choice_2d(logm_grid, prob)
 
 	mass_sample = 10.** logm
 

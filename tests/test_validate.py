@@ -3,6 +3,7 @@ import pytest
 import numpy as np
 from hypothesis import given
 from hypothesis import strategies as st
+from forecaster.func import ProbRGivenM_II
 from forecaster.mr_forecast import load_file
 
 
@@ -40,3 +41,26 @@ def test_validate_linear_piece(mean, std):
 
     np.testing.assert_array_equal(result, expected)
 
+@given(mean=st.floats(0.01, 2, allow_nan=False, allow_infinity=False),
+            std=st.floats(1e-4, 0.1, allow_nan=False, allow_infinity=False))
+def test_validate_probrad(mean, std):
+    from scipy.stats import norm, truncnorm
+    from forecaster.func import generate_mass, pick_random_hyper, \
+        piece_linear, piece_linear_II, ProbRGivenM
+
+
+    sample_size = 100
+    radius = truncnorm.rvs( (0.-mean)/std, np.inf, loc=mean, scale=std, size=sample_size)
+    logr = np.log10(radius)
+    logm = np.ones_like(logr)
+    grid_size = 400
+    logm_grid = np.linspace(-3.522, 5.477, int(grid_size))
+
+    hyper = pick_random_hyper(all_hyper, sample_size=sample_size)
+
+    expected = np.array([ ProbRGivenM(logr[i], logm_grid, hyper[i,:])
+                         for i in range(sample_size)])
+
+    result = ProbRGivenM_II(logr, logm_grid, hyper)
+
+    np.testing.assert_array_equal(result, expected)
