@@ -78,7 +78,6 @@ def Mpost2R(mass, unit='Earth', classify='No'):
 	logr = np.ones_like(logm)
 
 	hyper = pick_random_hyper(all_hyper, sample_size=sample_size)
-	print(sample_size)
 	if classify == 'Yes':
 		classification(logm, hyper[:,-3:])
 

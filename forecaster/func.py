@@ -121,11 +121,11 @@ def classification( logm, trans ):
 	'''
 	count = np.zeros(4)
 	sample_size = len(logm)
-
+	ts = np.insert(np.insert(trans, n_pop-1, np.inf), 0, -np.inf)
 	for iclass in range(4):
-		for isample in range(sample_size):
-			ind = indicate( logm[isample], trans[isample], iclass)
-			count[iclass] = count[iclass] + ind
+		
+		ind = indicate_II( logm, ts, iclass)
+		count[iclass] = count[iclass] + ind.sum()
 	
 	prob = count / np.sum(count) * 100.
 	print ('Terran %(T).1f %%, Neptunian %(N).1f %%, Jovian %(J).1f %%, Star %(S).1f %%' \
