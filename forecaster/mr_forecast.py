@@ -2,7 +2,9 @@ import numpy as np
 from scipy.stats import norm
 from scipy.stats import truncnorm 
 import h5py 
-
+import pkg_resources
+from functools import lru_cache
+from forecaster.func import piece_linear, ProbRGivenM, classification
 ## constant
 mearth2mjup = 317.828
 mearth2msun = 333060.4
@@ -16,14 +18,16 @@ mupper = 3e5
 ## number of category
 n_pop = 4
 
-## read parameter file
-hyper_file = 'fitting_parameters.h5'
-h5 = h5py.File(hyper_file, 'r')
-all_hyper = h5['hyper_posterior'][:]
-h5.close()
+@lru_cache(maxsize=2)
+def load_file():
+	hyperfile_path = pkg_resources.resource_filename(
+        'forecaster', 'data/fitting_parameters.h5')
+	with h5py.File(hyperfile_path, 'r') as f:
+		all_hyper = f['hyper_posterior'][...]
+	return all_hyper
 
 ## function
-from func import piece_linear, ProbRGivenM, classification
+
 
 ##############################################
 
@@ -49,6 +53,7 @@ def Mpost2R(mass, unit='Earth', classify='No'):
 		Predicted radius distribution in the input unit.
 	"""
 
+	all_hyper = load_file()
 	# mass input
 	mass = np.array(mass)
 	assert len(mass.shape) == 1, "Input mass must be 1-D."
@@ -59,11 +64,11 @@ def Mpost2R(mass, unit='Earth', classify='No'):
 	elif unit == 'Jupiter':
 		mass = mass * mearth2mjup
 	else:
-		print "Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default."
+		print ("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
 	# mass range
 	if np.min(mass) < 3e-4 or np.max(mass) > 3e5:
-		print 'Mass range out of model expectation. Returning None.'
+		print ('Mass range out of model expectation. Returning None.')
 		return None
 
 	## convert to radius
@@ -72,25 +77,19 @@ def Mpost2R(mass, unit='Earth', classify='No'):
 	prob = np.random.random(sample_size)
 	logr = np.ones_like(logm)
 
-	hyper_ind = np.random.randint(low = 0, high = np.shape(all_hyper)[0], size = sample_size)	
+	hyper_ind = np.random.randint(low = 0, high = np.shape(all_hyper)[0], size = sample_size)
 	hyper = all_hyper[hyper_ind,:]
 
 	if classify == 'Yes':
 		classification(logm, hyper[:,-3:])
-		
+
 
 	for i in range(sample_size):
 		logr[i] = piece_linear(hyper[i], logm[i], prob[i])
 
 	radius_sample = 10.** logr
 
-	## convert to right unit
-	if unit == 'Jupiter':
-		radius = radius_sample / rearth2rjup
-	else:
-		radius = radius_sample 
-
-	return radius
+	return radius_sample / rearth2rjup if unit == 'Jupiter' else radius_sample
 
 
 
@@ -124,7 +123,7 @@ def Mstat2R(mean, std, unit='Earth', sample_size=1000, classify = 'No'):
 		mean = mean * mearth2mjup
 		std = std * mearth2mjup
 	else:
-		print "Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default."
+		print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
 	# draw samples
 	mass = truncnorm.rvs( (mlower-mean)/std, (mupper-mean)/std, loc=mean, scale=std, size=sample_size)	
@@ -169,25 +168,27 @@ def Rpost2M(radius, unit='Earth', grid_size = 1e3, classify = 'No'):
 		Predicted mass distribution in the input unit.
 	"""
 	
+
+	all_hyper = load_file()
 	# unit
 	if unit == 'Earth':
 		pass
 	elif unit == 'Jupiter':
 		radius = radius * rearth2rjup
 	else:
-		print "Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default."
+		print ("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
 
 	# radius range
 	if np.min(radius) < 1e-1 or np.max(radius) > 1e2:
-		print 'Radius range out of model expectation. Returning None.'
+		print ('Radius range out of model expectation. Returning None.')
 		return None
 
 
 
 	# sample_grid
 	if grid_size < 10:
-		print 'The sample grid is too sparse. Using 10 sample grid instead.'
+		print ('The sample grid is too sparse. Using 10 sample grid instead.')
 		grid_size = 10
 
 	## convert to mass
@@ -195,7 +196,7 @@ def Rpost2M(radius, unit='Earth', grid_size = 1e3, classify = 'No'):
 	logr = np.log10(radius)
 	logm = np.ones_like(logr)
 
-	hyper_ind = np.random.randint(low = 0, high = np.shape(all_hyper)[0], size = sample_size)	
+	hyper_ind = np.random.randint(low = 0, high = np.shape(all_hyper)[0], size = sample_size)
 	hyper = all_hyper[hyper_ind,:]
 
 	logm_grid = np.linspace(-3.522, 5.477, grid_size)
@@ -209,13 +210,7 @@ def Rpost2M(radius, unit='Earth', grid_size = 1e3, classify = 'No'):
 	if classify == 'Yes':
 		classification(logm, hyper[:,-3:])
 
-	## convert to right unit
-	if unit == 'Jupiter':
-		mass = mass_sample / mearth2mjup
-	else:
-		mass = mass_sample
-	
-	return mass
+	return mass_sample / mearth2mjup if unit == 'Jupiter' else mass_sample
 
 
 
@@ -250,7 +245,7 @@ def Rstat2M(mean, std, unit='Earth', sample_size=1e3, grid_size=1e3, classify = 
 		mean = mean * rearth2rjup
 		std = std * rearth2rjup
 	else:
-		print "Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default."
+		print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
 	# draw samples
 	radius = truncnorm.rvs( (0.-mean)/std, np.inf, loc=mean, scale=std, size=sample_size)	
