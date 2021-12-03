@@ -4,7 +4,7 @@ from scipy.stats import truncnorm
 import h5py 
 import pkg_resources
 from functools import lru_cache
-from forecaster.func import piece_linear, ProbRGivenM, classification
+from forecaster.func import pick_random_hyper, piece_linear, ProbRGivenM, classification, piece_linear_II
 ## constant
 mearth2mjup = 317.828
 mearth2msun = 333060.4
@@ -77,15 +77,14 @@ def Mpost2R(mass, unit='Earth', classify='No'):
 	prob = np.random.random(sample_size)
 	logr = np.ones_like(logm)
 
-	hyper_ind = np.random.randint(low = 0, high = np.shape(all_hyper)[0], size = sample_size)
-	hyper = all_hyper[hyper_ind,:]
-
+	hyper = pick_random_hyper(all_hyper, sample_size=sample_size)
+	print(sample_size)
 	if classify == 'Yes':
 		classification(logm, hyper[:,-3:])
 
-
-	for i in range(sample_size):
-		logr[i] = piece_linear(hyper[i], logm[i], prob[i])
+	logr = piece_linear_II(hyper, logm, prob)
+	# for i in range(sample_size):
+	# 	logr[i] = piece_linear(hyper[i], logm[i], prob[i])
 
 	radius_sample = 10.** logr
 
